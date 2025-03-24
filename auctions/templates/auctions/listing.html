@@ -1,0 +1,108 @@
+{% extends "auctions/layout.html" %}
+{% block body %}
+<h2>
+    {{ owner.username }} is selling {{ listing.item_name }} —
+    Starting price: ${{ listing.price }} |
+    {%if highest_bid%}
+    Highest bid: ${{ highest_bid }}
+    {% else %}
+    No bids yet.
+    {% endif %}
+</h2>
+<p>{{ listing.description }}</p>
+<img src="{{ listing.image_link|default:'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg' }}"
+     alt="Item Image" width="300">
+
+<!-- Comments Section -->
+<h4>Comments:</h4>
+{% if comments %}
+<ul>
+    {% for comment in comments %}
+    <li><strong>{{ comment.user.username }}</strong>: {{ comment.content }}</li>
+    {% endfor %}
+</ul>
+{% else %}
+<p><em>No comments yet.</em></p>
+{% endif %}
+
+<!-- Comment Form for Authenticated Users -->
+{% if user.is_authenticated %}
+<form method="POST">
+    {% csrf_token %}
+    <textarea name="comment" rows="3" cols="60" placeholder="Leave a comment..." required></textarea><br>
+    <button type="submit" name="action" value="comment">Post Comment</button>
+</form>
+{% endif %}
+
+<br>
+{% if listing.is_closed %}
+<h4>The listing is closed.</h4>
+<p><strong>Starting price:</strong> ${{ listing.price }}</p>
+
+{% if highest_bid %}
+<p><strong>Highest bid:</strong> ${{ highest_bid }} by {{ highest_bidder.username }} at {{ highest_bid.timestamp }}</p>
+{% else %}
+<p><em>No bids yet.</em></p>
+{% endif %}
+
+{% if highest_bidder %}
+<p><strong>Highest bidder:</strong> {{ highest_bidder.username }}</p>
+{% endif %}
+{% endif %}
+<br>
+{% if  user == owner %}
+<p>You can't bid on your own listings</p>
+{% elif  user == highest_bidder %}
+<p>Your bid is currently the highest</p>
+{% endif %}
+
+{% if user.is_authenticated and user != highest_bidder and user != owner %}
+
+{% if listing.is_closed %}
+    <p><em>Bidding is closed for this listing.</em></p>
+{% else %}
+    {% if user.is_authenticated %}
+        {% if user != listing.owner and user != highest_bidder %}
+            <!-- Bid Form -->
+            <form method="POST">
+                {% csrf_token %}
+                <label for="bid">Your Bid:</label>
+                <input type="number" name="bid" id="bid" min="{{ highest_bid|default:listing.price }}" required>
+                <button type="submit" name="action" value="bid">Submit Bid</button>
+            </form>
+            {% if error_message %}
+                <p style="color: red;">{{ error_message }}</p>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <p><em>You must be signed in to place a bid.</em></p>
+    {% endif %}
+{% endif %}
+{% endif %}
+
+{% if user.is_authenticated and not listing.is_closed %}
+    <!-- Watchlist toggle -->
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" name="toggle_watchlist">
+            {% if user in listing.watchers.all %}
+                Remove from Watchlist
+            {% else %}
+                Add to Watchlist
+            {% endif %}
+        </button>
+    </form>
+{% endif %}
+
+{% if user == listing.owner and not listing.is_closed %}
+    <!-- Close listing button -->
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" name="close_listing">Close Listing</button>
+    </form>
+{% endif %}
+
+
+<a href="{% url 'index' %}">Back to active listings page</a>
+{% endblock %}
+

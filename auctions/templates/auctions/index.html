@@ -1,0 +1,35 @@
+{% extends "auctions/layout.html" %}
+{% block body %}
+<h2>Active Listings</h2>
+
+
+
+
+<div style="margin-bottom: 20px;">
+    <strong>Categories:</strong>
+
+    {% if not selected_category %}
+    <strong style="text-decoration: underline;">All</strong>
+    {% else %}
+    <a href="{% url 'index' %}">All</a>
+    {% endif %}
+     |
+
+    {% for code, label in categories %}
+    {% if code == selected_category %}
+    <strong style="text-decoration: underline;">{{ label }}</strong>
+    {% else %}
+    <a href="{% url 'category' code %}">{{ label }}</a>
+    {% endif %}
+    {% if not forloop.last %} | {% endif %}
+    {% endfor %}
+</div>
+<ul>
+    {% for listing in listings %}
+    <li>
+        {{ listing.owner.username }} is selling
+        <a href="{% url 'listing' listing.id %}">{{ listing.item_name }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

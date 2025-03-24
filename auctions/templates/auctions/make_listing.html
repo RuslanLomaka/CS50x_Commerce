@@ -1,0 +1,40 @@
+{% extends "auctions/layout.html" %}
+{% block body %}
+<h2>I'm selling...</h2>
+
+
+{% if message %}
+<div>{{ message }}</div>
+{% endif %}
+
+<form action="{% url 'make_listing' %}" method="post">
+    {% csrf_token %}
+    <div class="form-group">
+        <input class="form-control" autofocus type="text" name="item_name" placeholder="what are you selling?">
+    </div>
+
+    <div class="form-group">
+        <input class="form-control" autofocus type="text" name="description" placeholder="give a short description">
+    </div>
+    <div class="form-group">
+        <input class="form-control" autofocus type="number" name="price" placeholder="what is the minimal bid (USD)">
+    </div>
+    <div class="form-group">
+        <input class="form-control" type="url" name="image_link" placeholder="Paste image URL (optional)">
+    </div>
+    <div class="form-group">
+        <h2>Choose a category</h2>
+        <select name="category" required>
+            <option value="ELEC">Electronics</option>
+            <option value="BOOK">Books</option>
+            <option value="FASH">Fashion</option>
+            <option value="HOME">Home & Garden</option>
+            <option value="TOY">Toys</option>
+            <option value="AUTO">Automotive</option>
+            <option value="SPORT">Sports & Outdoors</option>
+            <option value="OTHER">Other</option>
+        </select>
+    </div>
+    <input class="btn btn-primary" type="submit" value="Start selling">
+</form>
+{% endblock %}
