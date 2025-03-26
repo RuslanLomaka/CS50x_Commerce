@@ -2,12 +2,6 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class User(AbstractUser):
-    id = models.IntegerField(blank=False,
-                             null=False,
-                             unique=True,
-                             auto_created=True,
-                             primary_key=True
-                             )
     def __str__(self):
         return f"{self.username}"
 
@@ -36,12 +30,12 @@ class Listing(models.Model):
         default='OTHER'
     )
     def __str__(self):
-        return f"{self.item_name} {self.category} by {self.owner.username}, price: {str(self.price)}, highest bid: {self.highest_bid}"
+        return f"{self.item_name} (${self.price}) - {self.owner.username}"
 
 
 class Bid(models.Model):
     bidder = models.ForeignKey(User, on_delete=models.CASCADE)
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="bids")
     amount = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
     def __str__(self):
@@ -54,4 +48,4 @@ class Comment(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.listing.item_name}{self.timestamp} {self.user.username} {self.content} $"
+        return f"[{self.timestamp}] {self.user.username} on {self.listing.item_name}: {self.content}"

@@ -1,35 +1,53 @@
-{% extends "auctions/layout.html" %}
+{% load static %}
+<head>
+    <title>{% block title %}Auctions{% endblock %}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link href="{% static 'auctions/auction_styles.css' %}" rel="stylesheet">
+</head>
 {% block body %}
-<h2>Active Listings</h2>
 
+<h2 id="page-title">Active Listings</h2>
 
-
-
-<div style="margin-bottom: 20px;">
+<div id="category-filter" style="margin-bottom: 20px;">
     <strong>Categories:</strong>
 
     {% if not selected_category %}
-    <strong style="text-decoration: underline;">All</strong>
+        <strong class="category active">All</strong>
     {% else %}
-    <a href="{% url 'index' %}">All</a>
+        <a href="{% url 'index' %}" class="category">All</a>
     {% endif %}
-     |
+    |
 
     {% for code, label in categories %}
-    {% if code == selected_category %}
-    <strong style="text-decoration: underline;">{{ label }}</strong>
-    {% else %}
-    <a href="{% url 'category' code %}">{{ label }}</a>
-    {% endif %}
-    {% if not forloop.last %} | {% endif %}
+        {% if code == selected_category %}
+            <strong class="category active">{{ label }}</strong>
+        {% else %}
+            <a href="{% url 'category' code %}" class="category">{{ label }}</a>
+        {% endif %}
+        {% if not forloop.last %} | {% endif %}
     {% endfor %}
 </div>
-<ul>
+
+<ul id="listing-list">
+    <div class="row">
     {% for listing in listings %}
-    <li>
-        {{ listing.owner.username }} is selling
-        <a href="{% url 'listing' listing.id %}">{{ listing.item_name }}</a>
-    </li>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 listing-card">
+              <img src="{{ listing.image_link|default:'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg' }}" class="card-img-top">
+
+                <div class="card-body">
+                    <h5 class="card-title">{{ listing.item_name }}</h5>
+                    <p class="card-text">
+                        <small class="text-muted">Seller: {{ listing.owner.username }}</small><br>
+                        Starting price: ${{ listing.price }}
+                    </p>
+                    <a href="{% url 'listing' listing.id %}" class="btn btn-primary btn-sm">View</a>
+                </div>
+            </div>
+        </div>
     {% endfor %}
+</div>
+
+
 </ul>
 {% endblock %}
