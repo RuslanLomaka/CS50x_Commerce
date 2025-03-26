@@ -27,22 +27,19 @@ def index(request):
 
 def login_view(request):
     if request.method == "POST":
-
-        # Attempt to sign user in
-        username = request.POST["username"]
-        password = request.POST["password"]
+        username = request.POST.get("username")
+        password = request.POST.get("password")
         user = authenticate(request, username=username, password=password)
 
-        # Check if authentication successful
-        if user is not None:
+        if user:
             login(request, user)
-            return HttpResponseRedirect(reverse("index"))
+            return redirect("index")
         else:
             return render(request, "auctions/login.html", {
                 "message": "Invalid username and/or password."
             })
-    else:
-        return render(request, "auctions/login.html")
+    return render(request, "auctions/login.html")
+
 
 
 def logout_view(request):
@@ -84,21 +81,25 @@ def listing(request, listing_id):
     highest_bidder = highest_bid.bidder if highest_bid else None
     comments = Comment.objects.filter(listing=listing).order_by("timestamp")
 
-    if "close_listing" in request.POST and request.user == listing.owner:
-        listing.is_closed = True
-        listing.save()
+    # Close listing (owner only)
+    if request.method == "POST" and "close_listing" in request.POST:
+        if request.user == listing.owner:
+            listing.is_closed = True
+            listing.save()
         return redirect("listing", listing_id=listing.id)
 
-    if request.method == "POST":
-        if "toggle_watchlist" in request.POST:
-            if request.user.is_authenticated:
-                if request.user in listing.watchers.all():
-                    listing.watchers.remove(request.user)
-                else:
-                    listing.watchers.add(request.user)
-            return redirect("listing", listing_id=listing.id)
+    # Watchlist toggle
+    if request.method == "POST" and "toggle_watchlist" in request.POST:
+        if request.user.is_authenticated:
+            if request.user in listing.watchers.all():
+                listing.watchers.remove(request.user)
+            else:
+                listing.watchers.add(request.user)
+        return redirect("listing", listing_id=listing.id)
 
+    # Bid submission
     if request.method == "POST" and request.POST.get("action") == "bid":
+        # auth check
         if not request.user.is_authenticated:
             messages.error(request, "You must be logged in to place a bid.")
             return redirect("listing", listing_id=listing_id)
@@ -110,32 +111,29 @@ def listing(request, listing_id):
 
         bid_amount = int(bid_amount)
         min_valid_bid = highest_bid.amount + 1 if highest_bid else listing.price
-
         if bid_amount < min_valid_bid:
             messages.error(request, f"Your bid must be at least ${min_valid_bid}.")
             return redirect("listing", listing_id=listing_id)
 
-        # Save the new bid
-        new_bid = Bid(listing=listing, bidder=request.user, amount=bid_amount)
-        new_bid.save()
-
+        Bid.objects.create(listing=listing, bidder=request.user, amount=bid_amount)
         listing.highest_bid = bid_amount
         listing.save()
 
         messages.success(request, "Your bid has been placed successfully!")
-        return redirect("listing", listing_id=listing_id)  # Refresh page
+        return redirect("listing", listing_id=listing_id)
 
+    # Comment submission
     if request.method == "POST" and request.POST.get("action") == "comment":
-        content = request.POST.get("comment")
-        if content:
-            Comment.objects.create(
-                listing=listing,
-                user=request.user,
-                content=content,
-                timestamp=timezone.now()  # optional, if not auto_now_add
-            )
-            # reload page with new comment
-            return redirect("listing", listing_id=listing.id)
+        if request.user.is_authenticated:
+            content = request.POST.get("comment")
+            if content:
+                Comment.objects.create(
+                    listing=listing,
+                    user=request.user,
+                    content=content,
+                    timestamp=timezone.now()
+                )
+        return redirect("listing", listing_id=listing.id)
 
     return render(request, "auctions/listing.html", {
         "listing": listing,
@@ -152,37 +150,36 @@ def watchlist(request):
         "listings": listings
     })
 
+@login_required
 def make_listing(request):
     if request.method == "POST":
-        item_name = request.POST["item_name"]
-        description = request.POST["description"]
+        item_name = request.POST.get("item_name", "").strip()
+        description = request.POST.get("description", "").strip()
         image_link = request.POST.get("image_link", "")
+        price = request.POST.get("price")
 
-        price = request.POST["price"]
-        # Ensure number isn't negative
-        if int(price) < 0:
-            return render(request, "auctions/register.html", {
-                "message": "Price cant be negative"
+        # Validate price
+        if not price or not price.isdigit() or int(price) < 0:
+            return render(request, "auctions/make_listing.html", {
+                "message": "Price must be a non-negative number."
             })
-        user = request.user
-        # Attempt to create new listing
+
         try:
-            listing = Listing.objects.create(
+            Listing.objects.create(
                 item_name=item_name,
                 description=description,
-                price=price,
-                owner=user,
+                price=int(price),
+                owner=request.user,
                 image_link=image_link
             )
-            listing.save()
         except IntegrityError:
             return render(request, "auctions/make_listing.html", {
-                "message": "there's a problem"
+                "message": "There was a problem saving your listing."
             })
 
-        return HttpResponseRedirect(reverse("index"))
-    else:
-        return render(request, "auctions/make_listing.html")
+        return redirect("index")
+
+    return render(request, "auctions/make_listing.html")
 
 def category(request, category_code):
     listings = Listing.objects.filter(category=category_code, is_closed=False)
