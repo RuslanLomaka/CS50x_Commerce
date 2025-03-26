@@ -1,5 +1,8 @@
 {% extends "auctions/layout.html" %}
 {% block body %}
+
+
+
 <h2>
     {{ owner.username }} is selling {{ listing.item_name }} —
     Starting price: ${{ listing.price }} |
@@ -67,7 +70,7 @@
             <form method="POST">
                 {% csrf_token %}
                 <label for="bid">Your Bid:</label>
-                <input type="number" name="bid" id="bid" min="{{ highest_bid|default:listing.price }}" required>
+                <input type="number" name="bid" id="bid"  min="{{ highest_bid|default:listing.price|add:'1' }}" required>
                 <button type="submit" name="action" value="bid">Submit Bid</button>
             </form>
             {% if error_message %}
@@ -79,6 +82,15 @@
     {% endif %}
 {% endif %}
 {% endif %}
+
+{% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
 
 {% if user.is_authenticated and not listing.is_closed %}
     <!-- Watchlist toggle -->

@@ -18,8 +18,11 @@ def index(request):
         "categories": categories,
         "selected_category": None
     }
-    return render(request, "auctions/index.html",
-                  context)
+    return render(request, "auctions/index.html", {
+        "listings": listings,
+        "categories": Listing.CATEGORY_CHOICES,
+        "selected_category": None
+    })
 
 
 def login_view(request):
